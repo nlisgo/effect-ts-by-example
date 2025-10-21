@@ -6,22 +6,17 @@ Learning Effect-TS through practical examples.
 
 Install dependencies:
 ```bash
-npm install
+bun install
 ```
 
 Run the example:
 ```bash
-npm run dev
+bun run example:dev
 ```
 
 Build the project:
 ```bash
-npm run build
-```
-
-Watch mode (auto-reload on changes):
-```bash
-npm run watch
+bun run build
 ```
 
 ## Structure
