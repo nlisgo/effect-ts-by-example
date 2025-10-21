@@ -18,12 +18,16 @@ void Effect.runPromise(program.pipe(
 {
   const divide = (a: number, b: number): Effect.Effect<number, Error> => (b === 0 ? Effect.fail(new Error('Cannot divide by zero')) : Effect.succeed(a / b));
 
-  Effect.runSync(divide(1, 2).pipe(
+  const performDivide = (divideEffect: Effect.Effect<number, Error>) => Effect.runSync(divideEffect.pipe(
     Effect.tap(Console.log('Performing divide!!')),
     Effect.map((result) => `Result: ${result}`),
     Effect.tap(Console.log),
     Effect.catchAll((error) => Console.log(error)),
   ));
+
+  performDivide(divide(1, 2));
+  performDivide(divide(7, 3));
+  performDivide(divide(1, 0));
 }
 
 {
@@ -42,10 +46,7 @@ void Effect.runPromise(program.pipe(
 
     // Check if the user exists in our "database" and return appropriately
     const user = userDatabase[userId];
-    if (user) {
-      return Effect.succeed(user);
-    }
-    return Effect.fail(new Error(`User not found with userId: ${userId}`));
+    return (user) ? Effect.succeed(user) : Effect.fail(new Error(`User not found with userId: ${userId}`));
   };
 
   const successfulUserEffect = getUser(1);
