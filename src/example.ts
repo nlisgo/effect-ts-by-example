@@ -1,4 +1,5 @@
-import { Effect, Console } from 'effect';
+import { Effect, Console, pipe } from 'effect';
+import { log } from './utils/log';
 
 // Basic Effect example
 const program = Effect.gen(function* () {
@@ -25,9 +26,20 @@ void Effect.runPromise(program.pipe(
     Effect.catchAll((error) => Console.log(error)),
   ));
 
+  // Effect.gen version of performDivide
+  const performDivideGen = (divideEffect: Effect.Effect<number, Error>) => Effect.runSync(Effect.gen(function* () {
+    const result = yield* divideEffect;
+    return `Result: ${result}`;
+  }).pipe(
+    Effect.catchAll((error) => Console.log(error)),
+  ));
+
   performDivide(divide(1, 2));
   performDivide(divide(7, 3));
   performDivide(divide(1, 0));
+  performDivideGen(divide(1, 2));
+  performDivideGen(divide(7, 3));
+  performDivideGen(divide(1, 0));
 }
 
 {
@@ -59,4 +71,15 @@ void Effect.runPromise(program.pipe(
 
   retrieveUser(successfulUserEffect);
   retrieveUser(unsuccessfulUserEffect);
+}
+
+{
+  // Define simple arithmetic operations
+  const increment = (x: number) => x + 1;
+  const double = (x: number) => x * 2;
+  const subtractTen = (x: number) => x - 10;
+
+  // Sequentially apply these operations using `pipe`
+  const result = pipe(5, increment, double, subtractTen);
+  log(`Result: ${result}`)();
 }
