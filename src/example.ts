@@ -83,3 +83,45 @@ void Effect.runPromise(program.pipe(
   const result = pipe(5, increment, double, subtractTen);
   log(`Result: ${result}`)();
 }
+
+const divide = (
+  a: number,
+  b: number,
+): Effect.Effect<number, Error, never> => (b === 0
+  ? Effect.fail(new Error('Cannot divide by zero'))
+  : Effect.succeed(a / b));
+
+log(divide(27, 3))();
+log(divide(27, 4))();
+log(divide(27, 0))();
+
+// Synchronous function that can't fail
+const simpleLog = (message: string): Effect.Effect<void, never, never> => Effect.sync(() => console.log(message));
+
+// Asynchronous function that can't fail
+const delay = (message: string): Effect.Effect<string, never, never> => Effect.promise<string>(
+  async () => new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(message);
+    }, 2000);
+  }),
+);
+
+// Synchronous function that can fail
+const parse = (input: string): Effect.Effect<unknown, Error, never> => Effect.try({
+  // JSON.parse may throw for bad input
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  try: () => JSON.parse(input),
+  // remap the error
+  catch: () => new Error('something went wrong while parsing the JSON'),
+});
+
+// Asynchronous function that can fail
+const getTodo = (id: number): Effect.Effect<Response, Error, never> => Effect.tryPromise({
+  // fetch can throw for network errors
+  try: async () => fetch(`https://jsonplaceholder.typicode.com/todos/${id}`),
+  // remap the error
+  catch: (unknown) => new Error(`something went wrong ${unknown}`),
+});
+
+// log(Effect.runPromise(pipe(delay('Hello, World!'), console.log)))();

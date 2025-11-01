@@ -8,6 +8,8 @@
     "build": "tsc",
     "example:dev": "tsx src/example.ts",
     "example": "node dist/example.js",
+    "coar-notification-example:dev": "tsx src/coar-notification-example.ts",
+    "coar-notification-example": "node dist/coar-notification-example.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix"
   },
@@ -20,6 +22,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@effect/platform": "^0.92.1",
     "effect": "^3.10.0"
   },
   "devDependencies": {
