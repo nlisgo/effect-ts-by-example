@@ -23,10 +23,12 @@
   "license": "MIT",
   "dependencies": {
     "@effect/platform": "^0.92.1",
-    "effect": "^3.10.0"
+    "effect": "^3.10.0",
+    "parse-link-header": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/parse-link-header": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
