@@ -74,20 +74,24 @@ const docmapCodec = S.Struct({
 
 const docmapsCodec = S.Array(docmapCodec);
 
-const httpGetAndValidate = <A, I = unknown, R = never>(
-  schema: S.Schema<A, I, R>,
-) => (uri: string) => Effect.gen(function* () {
-    const response = yield* HttpClient.get(uri);
-    const data = yield* response.json;
+const httpRequestAndValidate = <Resp, E1, R1, Body, E2, R2>(
+  request: (uri: string) => Effect.Effect<Resp, E1, R1>,
+  extract: (resp: Resp) => Effect.Effect<Body, E2, R2>,
+) => <A, I = unknown, Req = never>(schema: S.Schema<A, I, Req>) => (uri: string) => Effect.gen(function* () {
+    const raw = yield* request(uri);
+    const data = yield* extract(raw);
     return yield* S.decodeUnknown(schema)(data);
   });
 
-const httpHeadAndValidate = <A, I = unknown, R = never>(
-  schema: S.Schema<A, I, R>,
-) => (uri: string) => Effect.gen(function* () {
-    const response = yield* HttpClient.head(uri);
-    return yield* S.decodeUnknown(schema)(response.headers);
-  });
+const httpGetAndValidate = httpRequestAndValidate(
+  (uri) => HttpClient.get(uri),
+  (res) => res.json,
+);
+
+const httpHeadAndValidate = httpRequestAndValidate(
+  (uri) => HttpClient.head(uri),
+  (res) => Effect.sync(() => res.headers),
+);
 
 const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: string) => pipe(
   notificationUri,
