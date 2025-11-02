@@ -95,7 +95,7 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
-class EmptyArrayError extends Data.TaggedError('EmptyArrayError')<{
+class NonEmptyArrayError extends Data.TaggedError('EmptyArrayError')<{
   message: string,
 }> {}
 
@@ -132,7 +132,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.flatMap(
     (opt) => (O.isSome(opt)
       ? Effect.succeed(opt.value)
-      : Effect.fail(new EmptyArrayError({ message: 'Header links array is empty' }))),
+      : Effect.fail(new NonEmptyArrayError({ message: 'Header links array is empty' }))),
   ),
   Effect.map((link) => link.describedby.url),
   Effect.tap((signpostingDocmapUri) => Console.log(`Step 2: retrieved DocMap uri: ${signpostingDocmapUri}`)),
@@ -145,7 +145,7 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
   Effect.flatMap(
     (opt) => (O.isSome(opt)
       ? Effect.succeed(opt.value)
-      : Effect.fail(new EmptyArrayError({ message: 'DocMaps array is empty' }))),
+      : Effect.fail(new NonEmptyArrayError({ message: 'DocMaps array is empty' }))),
   ),
 );
 
@@ -165,7 +165,7 @@ const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: 
   )),
 );
 
-const program = pipe(
+const app = pipe(
   retrieveDocmapsFromCoarNotificationUris([
     {
       uuid: 'bf3513ee-1fef-4f30-a61b-20721b505f11',
@@ -194,5 +194,5 @@ const program = pipe(
 );
 
 void Effect.runPromise(
-  Effect.catchAllCause(program, (cause) => Console.log('Unexpected failure:', cause)),
+  Effect.catchAllCause(app, (cause) => Console.log('Unexpected failure:', cause)),
 );
