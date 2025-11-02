@@ -7,24 +7,6 @@ import * as S from 'effect/Schema';
 import parseLinkHeader from 'parse-link-header';
 import { log } from './utils/log';
 
-const debugLevelValues = {
-  BASIC: 'Basic',
-  COAR_NOTIFICATION: 'COAR notification',
-  COAR_NOTIFICATION_ESSENTIALS: 'COAR notification (essentials)',
-  EVALUATION_HEADERS: 'Evaluation headers',
-  EVALUATION_HEADERS_ESSENTIALS: 'Evaluation headers (essentials)',
-  DOCMAP: 'DocMap',
-  DOCMAP_ESSENTIALS: 'DocMap (essentials)',
-} as const;
-
-type DebugLevel = typeof debugLevelValues[keyof typeof debugLevelValues];
-
-type DebugLevels = Array<DebugLevel>;
-
-type Item = string | number;
-
-const jsonStringify = (data: unknown) => JSON.stringify(data, null, 2);
-
 const notificationCodec = S.Struct({
   object: S.Struct({
     id: S.String,
@@ -93,17 +75,6 @@ const docmapCodec = S.Struct({
 
 const docmapsCodec = S.Array(docmapCodec);
 
-const normaliseLinkHeader = (raw: string) => pipe(
-  raw
-    .replace(/>\s*;\s*/g, '>; ')
-    .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
-    .replace(/;\s*;/g, '; ')
-    .trim()
-    .split(', '),
-  A.map(parseLinkHeader),
-  A.filterMap(O.fromNullable), // drops nulls, keeps typed Link[]
-);
-
 const httpGetAndValidate = <A, I = unknown, R = never>(
   schema: S.Schema<A, I, R>,
 ) => (uri: string) => Effect.gen(function* () {
@@ -119,43 +90,67 @@ const httpHeadAndValidate = <A, I = unknown, R = never>(
     return yield* S.decodeUnknown(schema)(response.headers);
   });
 
+const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: string) => pipe(
+  notificationUri,
+  httpGetAndValidate(notificationCodec),
+  Effect.map((notification) => notification.object.id),
+  Effect.tap((announcementActionUri) => Console.log(`Step 1: retrieved evaluation uri: ${announcementActionUri}`)),
+);
+
+const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
+  announcementActionUri,
+  httpHeadAndValidate(headersCodec),
+  Effect.map((headers) => headers.link),
+  Effect.map(
+    (link) => link
+      .replace(/>\s*;\s*/g, '>; ')
+      .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
+      .replace(/;\s*;/g, '; ')
+      .trim()
+      .split(', '),
+  ),
+  Effect.map(A.map(parseLinkHeader)),
+  Effect.map(A.filterMap(O.fromNullable)),
+  Effect.flatMap(
+    (links) => Effect.forEach(
+      links, (link) => Effect.either(
+        S.decodeUnknown(parsedLinkCodec)(link),
+      ),
+    ),
+  ),
+  Effect.map((links) => A.filterMap(links, E.getRight)),
+  Effect.map(A.last),
+  Effect.flatMap(
+    (opt) => (O.isSome(opt)
+      ? Effect.succeed(opt.value)
+      : Effect.fail(new Error('Header links array is empty'))),
+  ),
+  Effect.map((link) => link.describedby.url),
+  Effect.tap((signpostingDocmapUri) => Console.log(`Step 2: retrieved DocMap uri: ${signpostingDocmapUri}`)),
+);
+
+const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
+  signpostingDocmapUri,
+  httpGetAndValidate(docmapsCodec),
+  Effect.map(A.head),
+  Effect.flatMap(
+    (opt) => (O.isSome(opt)
+      ? Effect.succeed(opt.value)
+      : Effect.fail(new Error('DocMaps array is empty'))),
+  ),
+);
+
 void (async () => {
   log(
     await Effect.runPromise(
       pipe(
-        'https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:bf3513ee-1fef-4f30-a61b-20721b505f11',
-        httpGetAndValidate(notificationCodec),
-        Effect.map((notification) => notification.object.id),
-        Effect.tap((uri) => Console.log(`Step 1: retrieved evaluation uri: ${uri}`)),
-        Effect.flatMap(httpHeadAndValidate(headersCodec)),
-        Effect.map((headers) => headers.link),
-        Effect.map(normaliseLinkHeader),
-        Effect.flatMap(
-          (links) => Effect.forEach(
-            links, (link) => Effect.either(
-              S.decodeUnknown(parsedLinkCodec)(link),
-            ),
-          ),
-        ),
-        Effect.map((links) => A.filterMap(links, E.getRight)),
-        Effect.map(A.last),
-        Effect.flatMap(
-          (opt) => (O.isSome(opt)
-            ? Effect.succeed(opt.value)
-            : Effect.fail(new Error('Header links array is empty'))),
-        ),
-        Effect.map((link) => link.describedby.url),
-        Effect.tap((uri) => Console.log(`Step 2: retrieved DocMap uri: ${uri}`)),
-        Effect.flatMap(httpGetAndValidate(docmapsCodec)),
-        Effect.map(A.head),
-        Effect.flatMap(
-          (opt) => (O.isSome(opt)
-            ? Effect.succeed(opt.value)
-            : Effect.fail(new Error('DocMaps array is empty'))),
-        ),
+        'https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:7140557f-6fe6-458f-ad59-21a9d53c8eb2',
+        retrieveAnnouncementActionUriFromCoarNotificationUri,
+        Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
+        Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
         Effect.provide(FetchHttpClient.layer),
       ),
     )
-      .catch((err) => console.error('Error:', err)),
+      .catch(log('Error:')),
   )();
 })();
