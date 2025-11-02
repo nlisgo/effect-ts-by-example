@@ -4,6 +4,20 @@ import {
 } from 'effect';
 import parseLinkHeader from 'parse-link-header';
 
+const debugLevelValues = {
+  BASIC: 'Basic',
+  COAR_NOTIFICATION: 'COAR notification',
+  COAR_NOTIFICATION_ESSENTIALS: 'COAR notification (essentials)',
+  EVALUATION_HEADERS: 'Evaluation headers',
+  EVALUATION_HEADERS_ESSENTIALS: 'Evaluation headers (essentials)',
+  DOCMAP: 'DocMap',
+  DOCMAP_ESSENTIALS: 'DocMap (essentials)',
+} as const;
+
+type DebugLevel = typeof debugLevelValues[keyof typeof debugLevelValues];
+
+type DebugLevels = Array<DebugLevel>;
+
 const notificationCodec = Schema.Struct({
   object: Schema.Struct({
     id: Schema.String,
@@ -152,7 +166,7 @@ const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => p
   Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
 );
 
-const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string }>) => pipe(
+const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>) => pipe(
   configs,
   Effect.forEach(({ uuid }) => pipe(
     retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
@@ -171,6 +185,9 @@ const app = pipe(
     },
     {
       uuid: '7140557f-6fe6-458f-ad59-21a9d53c8eb2',
+      debug: [
+        debugLevelValues.EVALUATION_HEADERS,
+      ],
     },
   ]),
   Effect.provide(FetchHttpClient.layer),
