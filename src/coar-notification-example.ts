@@ -5,7 +5,6 @@ import * as E from 'effect/Either';
 import * as O from 'effect/Option';
 import * as S from 'effect/Schema';
 import parseLinkHeader from 'parse-link-header';
-import { log } from './utils/log';
 
 const notificationCodec = S.Struct({
   object: S.Struct({
@@ -140,17 +139,48 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
   ),
 );
 
-void (async () => {
-  log(
-    await Effect.runPromise(
-      pipe(
-        'https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:7140557f-6fe6-458f-ad59-21a9d53c8eb2',
-        retrieveAnnouncementActionUriFromCoarNotificationUri,
-        Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
-        Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
-        Effect.provide(FetchHttpClient.layer),
-      ),
-    )
-      .catch(log('Error:')),
-  )();
-})();
+const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => pipe(
+  coarNotificationUri,
+  retrieveAnnouncementActionUriFromCoarNotificationUri,
+  Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
+  Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
+);
+
+const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string }>) => pipe(
+  configs,
+  Effect.forEach(({ uuid }) => pipe(
+    retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
+    Effect.either,
+    Effect.map((result) => ({ uuid, result })),
+  )),
+);
+
+const program = pipe(
+  retrieveDocmapsFromCoarNotificationUris([
+    {
+      uuid: 'bf3513ee-1fef-4f30-a61b-20721b505f11',
+    },
+    {
+      uuid: '9154949f-6da4-4f16-8997-a0762f19b05a',
+    },
+    {
+      uuid: '7140557f-6fe6-458f-ad59-21a9d53c8eb2',
+    },
+  ]),
+  Effect.provide(FetchHttpClient.layer),
+  Effect.flatMap((results) => Effect.forEach(
+    results,
+    ({ uuid, result }) => pipe(
+      result,
+      E.match({
+        onLeft: (error) => Console.error(`Error retrieving docmap for ${uuid}:`, error),
+        onRight: (docmap) => Console.log(`DocMap for ${uuid}:`, docmap),
+      }),
+    ),
+    { discard: true },
+  )),
+);
+
+void Effect.runPromise(
+  Effect.catchAllCause(program, (cause) => Console.log('Unexpected failure:', cause)),
+);
