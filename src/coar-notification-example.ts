@@ -1,88 +1,84 @@
 import { FetchHttpClient, HttpClient } from '@effect/platform';
 import {
-  Console, Data, Effect, pipe,
+  Array, Console, Data, Effect, Either, Option, pipe, Schema,
 } from 'effect';
-import * as A from 'effect/Array';
-import * as E from 'effect/Either';
-import * as O from 'effect/Option';
-import * as S from 'effect/Schema';
 import parseLinkHeader from 'parse-link-header';
 
-const notificationCodec = S.Struct({
-  object: S.Struct({
-    id: S.String,
+const notificationCodec = Schema.Struct({
+  object: Schema.Struct({
+    id: Schema.String,
   }),
 });
 
-const headersCodec = S.Struct({
-  link: S.String,
+const headersCodec = Schema.Struct({
+  link: Schema.String,
 });
 
-const parsedLinkCodec = S.Struct({
-  describedby: S.Struct({
-    url: S.String,
-    type: S.Literal('application/ld+json'),
+const parsedLinkCodec = Schema.Struct({
+  describedby: Schema.Struct({
+    url: Schema.String,
+    type: Schema.Literal('application/ld+json'),
   }),
 });
 
-const stepCodec = S.extend(
-  S.Struct({
-    inputs: S.Array(
-      S.Struct({
-        doi: S.String,
+const stepCodec = Schema.extend(
+  Schema.Struct({
+    inputs: Schema.Array(
+      Schema.Struct({
+        doi: Schema.String,
       }),
     ),
-    actions: S.Array(
-      S.Struct({
-        outputs: S.Array(
-          S.Struct({
-            published: S.String,
-            doi: S.String,
-            type: S.String,
+    actions: Schema.Array(
+      Schema.Struct({
+        outputs: Schema.Array(
+          Schema.Struct({
+            published: Schema.String,
+            doi: Schema.String,
+            type: Schema.String,
           }),
         ),
-        inputs: S.Array(
-          S.Struct({
-            doi: S.String,
+        inputs: Schema.Array(
+          Schema.Struct({
+            doi: Schema.String,
           }),
         ),
       }),
     ),
   }),
-  S.partial(S.Struct({
-    'next-step': S.String,
-    'previous-step': S.String,
+  Schema.partial(Schema.Struct({
+    'next-step': Schema.String,
+    'previous-step': Schema.String,
   })),
 );
 
-const stepsCodec = S.Record({
-  key: S.String,
+const stepsCodec = Schema.Record({
+  key: Schema.String,
   value: stepCodec,
 });
 
-const docmapCodec = S.Struct({
-  type: S.Literal('docmap'),
-  id: S.String,
-  publisher: S.Struct({
-    name: S.String,
-    url: S.String,
+const docmapCodec = Schema.Struct({
+  type: Schema.Literal('docmap'),
+  id: Schema.String,
+  publisher: Schema.Struct({
+    name: Schema.String,
+    url: Schema.String,
   }),
-  created: S.String,
-  updated: S.String,
-  'first-step': S.Literal('_:b0'),
+  created: Schema.String,
+  updated: Schema.String,
+  'first-step': Schema.Literal('_:b0'),
   steps: stepsCodec,
-  '@context': S.String,
+  '@context': Schema.String,
 });
 
-const docmapsCodec = S.Array(docmapCodec);
+const docmapsCodec = Schema.Array(docmapCodec);
 
 const httpRequestAndValidate = <Resp, E1, R1, Body, E2, R2>(
   request: (uri: string) => Effect.Effect<Resp, E1, R1>,
   extract: (resp: Resp) => Effect.Effect<Body, E2, R2>,
-) => <A, I = unknown, Req = never>(schema: S.Schema<A, I, Req>) => (uri: string) => Effect.gen(function* () {
+) => <A, I = unknown, Req = never>(schema: Schema.Schema<A, I, Req>) => (uri: string) => Effect.gen(function* () {
     const raw = yield* request(uri);
     const data = yield* extract(raw);
-    return yield* S.decodeUnknown(schema)(data);
+    return yield* Schema.decodeUnknown(schema)(data);
   });
 
 const httpGetAndValidate = httpRequestAndValidate(
@@ -118,19 +114,19 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
       .trim()
       .split(', '),
   ),
-  Effect.map(A.map(parseLinkHeader)),
-  Effect.map(A.filterMap(O.fromNullable)),
+  Effect.map(Array.map(parseLinkHeader)),
+  Effect.map(Array.filterMap(Option.fromNullable)),
   Effect.flatMap(
     (links) => Effect.forEach(
       links, (link) => Effect.either(
-        S.decodeUnknown(parsedLinkCodec)(link),
+        Schema.decodeUnknown(parsedLinkCodec)(link),
       ),
     ),
   ),
-  Effect.map((links) => A.filterMap(links, E.getRight)),
-  Effect.map(A.last),
+  Effect.map((links) => Array.filterMap(links, Either.getRight)),
+  Effect.map(Array.last),
   Effect.flatMap(
-    (opt) => (O.isSome(opt)
+    (opt) => (Option.isSome(opt)
       ? Effect.succeed(opt.value)
       : Effect.fail(new NonEmptyArrayError({ message: 'Header links array is empty' }))),
   ),
@@ -141,9 +137,9 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   signpostingDocmapUri,
   httpGetAndValidate(docmapsCodec),
-  Effect.map(A.head),
+  Effect.map(Array.head),
   Effect.flatMap(
-    (opt) => (O.isSome(opt)
+    (opt) => (Option.isSome(opt)
       ? Effect.succeed(opt.value)
       : Effect.fail(new NonEmptyArrayError({ message: 'DocMaps array is empty' }))),
   ),
@@ -183,7 +179,7 @@ const app = pipe(
       results,
       ({ uuid, result }) => pipe(
         result,
-        E.match({
+        Either.match({
           onLeft: (error) => Console.error(`Error retrieving docmap for ${uuid}:`, error),
           onRight: (docmap) => Console.log(`DocMap for ${uuid}:`, docmap),
         }),
