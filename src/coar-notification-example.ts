@@ -1,5 +1,7 @@
 import { FetchHttpClient, HttpClient } from '@effect/platform';
-import { Console, Effect, pipe } from 'effect';
+import {
+  Console, Data, Effect, pipe,
+} from 'effect';
 import * as A from 'effect/Array';
 import * as E from 'effect/Either';
 import * as O from 'effect/Option';
@@ -93,6 +95,10 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
+class EmptyArrayError extends Data.TaggedError('EmptyArrayError')<{
+  message: string,
+}> {}
+
 const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: string) => pipe(
   notificationUri,
   httpGetAndValidate(notificationCodec),
@@ -126,7 +132,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.flatMap(
     (opt) => (O.isSome(opt)
       ? Effect.succeed(opt.value)
-      : Effect.fail(new Error('Header links array is empty'))),
+      : Effect.fail(new EmptyArrayError({ message: 'Header links array is empty' }))),
   ),
   Effect.map((link) => link.describedby.url),
   Effect.tap((signpostingDocmapUri) => Console.log(`Step 2: retrieved DocMap uri: ${signpostingDocmapUri}`)),
@@ -139,7 +145,7 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
   Effect.flatMap(
     (opt) => (O.isSome(opt)
       ? Effect.succeed(opt.value)
-      : Effect.fail(new Error('DocMaps array is empty'))),
+      : Effect.fail(new EmptyArrayError({ message: 'DocMaps array is empty' }))),
   ),
 );
 
@@ -172,16 +178,18 @@ const program = pipe(
     },
   ]),
   Effect.provide(FetchHttpClient.layer),
-  Effect.flatMap((results) => Effect.forEach(
-    results,
-    ({ uuid, result }) => pipe(
-      result,
-      E.match({
-        onLeft: (error) => Console.error(`Error retrieving docmap for ${uuid}:`, error),
-        onRight: (docmap) => Console.log(`DocMap for ${uuid}:`, docmap),
-      }),
+  Effect.flatMap((results) => pipe(
+    Effect.forEach(
+      results,
+      ({ uuid, result }) => pipe(
+        result,
+        E.match({
+          onLeft: (error) => Console.error(`Error retrieving docmap for ${uuid}:`, error),
+          onRight: (docmap) => Console.log(`DocMap for ${uuid}:`, docmap),
+        }),
+      ),
     ),
-    { discard: true },
+    Effect.asVoid,
   )),
 );
 
