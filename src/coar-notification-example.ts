@@ -111,7 +111,7 @@ const normaliseLinkHeader = (raw: string) => Effect.gen(function* () {
     .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
     .replace(/;\s*;/g, '; ')
     .trim()
-    .split(', '));
+    .split(/,\s+/));
 });
 
 class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
