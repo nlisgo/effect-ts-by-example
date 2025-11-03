@@ -105,7 +105,7 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
-class NonEmptyArrayError extends Data.TaggedError('EmptyArrayError')<{
+class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
   message: string,
 }> {}
 
