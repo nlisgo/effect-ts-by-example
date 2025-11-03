@@ -119,15 +119,15 @@ class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
 }> {}
 
 const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: string) => pipe(
-  notificationUri,
-  httpGetAndValidate(notificationCodec),
+  Effect.succeed(notificationUri),
+  Effect.flatMap(httpGetAndValidate(notificationCodec)),
   Effect.map((notification) => notification.object.id),
   Effect.tap((announcementActionUri) => Console.log(`Step 1: retrieved evaluation uri: ${announcementActionUri}`)),
 );
 
 const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
-  announcementActionUri,
-  httpHeadAndValidate(headersCodec),
+  Effect.succeed(announcementActionUri),
+  Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map((headers) => headers.link),
   Effect.flatMap(normaliseLinkHeader),
   Effect.map(Array.map(parseLinkHeader)),
@@ -151,8 +151,8 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 );
 
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
-  signpostingDocmapUri,
-  httpGetAndValidate(docmapsCodec),
+  Effect.succeed(signpostingDocmapUri),
+  Effect.flatMap(httpGetAndValidate(docmapsCodec)),
   Effect.map(Array.head),
   Effect.flatMap(
     (opt) => (Option.isSome(opt)
@@ -162,19 +162,21 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
 );
 
 const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => pipe(
-  coarNotificationUri,
-  retrieveAnnouncementActionUriFromCoarNotificationUri,
+  Effect.succeed(coarNotificationUri),
+  Effect.flatMap(retrieveAnnouncementActionUriFromCoarNotificationUri),
   Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
   Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
 );
 
 const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>) => pipe(
-  configs,
-  Effect.forEach(({ uuid }) => pipe(
-    retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
-    Effect.either,
-    Effect.map((result) => ({ uuid, result })),
-  )),
+  Effect.succeed(configs),
+  Effect.flatMap(
+    Effect.forEach(({ uuid }) => pipe(
+      retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
+      Effect.either,
+      Effect.map((result) => ({ uuid, result })),
+    )),
+  ),
 );
 
 const app = pipe(
