@@ -105,6 +105,13 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
+const normaliseLinkHeader = (raw: string) => raw
+  .replace(/>\s*;\s*/g, '>; ')
+  .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
+  .replace(/;\s*;/g, '; ')
+  .trim()
+  .split(', ');
+
 class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
   message: string,
 }> {}
@@ -120,14 +127,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   announcementActionUri,
   httpHeadAndValidate(headersCodec),
   Effect.map((headers) => headers.link),
-  Effect.map(
-    (link) => link
-      .replace(/>\s*;\s*/g, '>; ')
-      .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
-      .replace(/;\s*;/g, '; ')
-      .trim()
-      .split(', '),
-  ),
+  Effect.map(normaliseLinkHeader),
   Effect.map(Array.map(parseLinkHeader)),
   Effect.map(Array.filterMap(Option.fromNullable)),
   Effect.flatMap(
