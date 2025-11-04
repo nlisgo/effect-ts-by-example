@@ -124,7 +124,6 @@ const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: s
   Effect.succeed(notificationUri),
   Effect.flatMap(httpGetAndValidate(notificationCodec)),
   Effect.map((notification) => notification.object.id),
-  Effect.tap((announcementActionUri) => Console.log(`Step 1: retrieved evaluation uri: ${announcementActionUri}`)),
 );
 
 const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
@@ -149,7 +148,6 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
       : Effect.fail(new NonEmptyArrayError({ message: 'Header links array is empty' }))),
   ),
   Effect.map((link) => link.describedby.url),
-  Effect.tap((signpostingDocmapUri) => Console.log(`Step 2: retrieved DocMap uri: ${signpostingDocmapUri}`)),
 );
 
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
@@ -165,8 +163,18 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
 
 const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => pipe(
   Effect.succeed(coarNotificationUri),
+  Effect.tap(Console.log(`(1a) retrieve action announcement uri from COAR notification uri: ${coarNotificationUri}`)),
   Effect.flatMap(retrieveAnnouncementActionUriFromCoarNotificationUri),
+  Effect.tapBoth({
+    onSuccess: (announcementActionUri) => Console.log(`(1b) retrieved action announcement uri: ${announcementActionUri}`),
+    onFailure: (error) => Console.log(`(1b) failure to retrieve action announcement ur: ${error.message}`, error),
+  }),
+  Effect.tap((announcementActionUri) => Console.log(`(2a) retrieve signposting DocMap uri from action announcement uri: ${announcementActionUri}`)),
   Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
+  Effect.tapBoth({
+    onSuccess: (signpostingDocmapUri) => Console.log(`(2b) retrieved signposting DocMap uri: ${signpostingDocmapUri}`),
+    onFailure: (error) => Console.log(`(2b) failure to retrieve signposting DocMap uri: ${error.message}`, error),
+  }),
   Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
 );
 
@@ -175,8 +183,8 @@ const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: 
   Effect.flatMap(
     Effect.forEach(({ uuid }) => pipe(
       retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
-      Effect.either,
-      Effect.map((result) => ({ uuid, result })),
+      Effect.tap((result) => Console.log({ uuid, result })),
+      Effect.catchAll((error) => Effect.succeed({ uuid, error })),
     )),
   ),
 );
@@ -197,19 +205,6 @@ const app = pipe(
     },
   ]),
   Effect.provide(FetchHttpClient.layer),
-  Effect.flatMap((results) => pipe(
-    Effect.forEach(
-      results,
-      ({ uuid, result }) => pipe(
-        result,
-        Either.match({
-          onLeft: (error) => Console.error(`Error retrieving docmap for ${uuid}:`, error),
-          onRight: (docmap) => Console.log(`DocMap for ${uuid}:`, docmap),
-        }),
-      ),
-    ),
-    Effect.asVoid,
-  )),
 );
 
 void Effect.runPromise(
