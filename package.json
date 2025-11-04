@@ -8,6 +8,8 @@
     "build": "tsc",
     "example:dev": "tsx src/example.ts",
     "example": "node dist/example.js",
+    "command:dev": "tsx src/command.ts",
+    "command": "node dist/command.js",
     "coar-notification-example:dev": "tsx src/coar-notification-example.ts",
     "coar-notification-example": "node dist/coar-notification-example.js",
     "lint": "eslint src --ext .ts",
@@ -23,6 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "@effect/platform": "^0.92.1",
+    "@effect/platform-node": "^0.98.4",
     "effect": "^3.10.0",
     "parse-link-header": "^2.0.0"
   },

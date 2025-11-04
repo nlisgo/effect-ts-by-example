@@ -4,7 +4,7 @@ import {
 } from 'effect';
 import parseLinkHeader from 'parse-link-header';
 
-const debugLevelValues = {
+const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
   COAR_NOTIFICATION: 'COAR notification',
   COAR_NOTIFICATION_ESSENTIALS: 'COAR notification (essentials)',
@@ -12,9 +12,11 @@ const debugLevelValues = {
   EVALUATION_HEADERS_ESSENTIALS: 'Evaluation headers (essentials)',
   DOCMAP: 'DocMap',
   DOCMAP_ESSENTIALS: 'DocMap (essentials)',
-} as const;
+} as const);
 
-type DebugLevel = typeof debugLevelValues[keyof typeof debugLevelValues];
+const debugLevelValues = debugLevelSchema.enums;
+
+type DebugLevel = Schema.Schema.Type<typeof debugLevelSchema>;
 
 type DebugLevels = Array<DebugLevel>;
 
