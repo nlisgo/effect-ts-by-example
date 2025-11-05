@@ -2,7 +2,7 @@ import { FetchHttpClient, HttpClient } from '@effect/platform';
 import {
   Array, Console, Data, Effect, Either, Option, pipe, Schema,
 } from 'effect';
-import parseLinkHeader from 'parse-link-header';
+import LinkHeader from 'http-link-header';
 
 const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
@@ -30,11 +30,15 @@ const headersCodec = Schema.Struct({
   link: Schema.String,
 });
 
-const parsedLinkCodec = Schema.Struct({
-  describedby: Schema.Struct({
-    url: Schema.String,
-    type: Schema.Literal('application/ld+json'),
-  }),
+const signpostingDocmapLinkCodec = Schema.Struct({
+  uri: Schema.String,
+  rel: Schema.Literal('describedby'),
+  type: Schema.Literal('application/ld+json'),
+  profile: Schema.Literal('https://w3id.org/docmaps/context.jsonld'),
+});
+
+const httpLinkHeaderCodec = Schema.Struct({
+  refs: Schema.Array(Schema.Unknown),
 });
 
 const stepCodec = Schema.extend(
@@ -107,15 +111,6 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
-const normaliseLinkHeader = (raw: string) => Effect.gen(function* () {
-  return yield* Effect.succeed(raw
-    .replace(/>\s*;\s*/g, '>; ')
-    .replace(/(?<!;)\s+(?=(type|profile|title|rev)=)/g, '; ')
-    .replace(/;\s*;/g, '; ')
-    .trim()
-    .split(/,\s+/));
-});
-
 class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
   message: string,
 }> {}
@@ -130,24 +125,24 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.succeed(announcementActionUri),
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map((headers) => headers.link),
-  Effect.flatMap(normaliseLinkHeader),
-  Effect.map(Array.map(parseLinkHeader)),
-  Effect.map(Array.filterMap(Option.fromNullable)),
+  Effect.map(LinkHeader.parse),
+  Effect.flatMap(Schema.decodeUnknown(httpLinkHeaderCodec)),
+  Effect.map(({ refs }) => refs),
   Effect.flatMap(
-    (links) => Effect.forEach(
-      links, (link) => Effect.either(
-        Schema.decodeUnknown(parsedLinkCodec)(link),
+    (refs) => Effect.forEach(
+      refs, (ref) => Effect.either(
+        Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref),
       ),
     ),
   ),
-  Effect.map((links) => Array.filterMap(links, Either.getRight)),
+  Effect.map((refs) => Array.filterMap(refs, Either.getRight)),
   Effect.map(Array.last),
   Effect.flatMap(
     (opt) => (Option.isSome(opt)
       ? Effect.succeed(opt.value)
       : Effect.fail(new NonEmptyArrayError({ message: 'Header links array is empty' }))),
   ),
-  Effect.map((link) => link.describedby.url),
+  Effect.map((ref) => ref.uri),
 );
 
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
