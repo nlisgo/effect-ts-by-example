@@ -1,4 +1,3 @@
-import { type Buffer } from 'node:buffer';
 import { Context, Effect, Layer } from 'effect';
 import LinkHeaderClass from 'http-link-header';
 
@@ -14,30 +13,28 @@ export const LinkHeaderLive: Layer.Layer<LinkHeaderService> = Layer.succeed(
 );
 
 /**
- * Helper to wrap a service method in an Effect
+ * Helper to wrap a static method from the service in an Effect
+ * Uses explicit typing for better type inference in pipe chains
  */
-const wrapServiceMethod = <Args extends Array<unknown>, R>(
-  methodName: keyof LinkHeaderService,
-) => (...args: Args): Effect.Effect<R, never, LinkHeaderService> => Effect.flatMap(
+const wrap = <Args extends ReadonlyArray<unknown>, R>(
+  methodName: keyof LinkHeaderStatic,
+): ((...args: Args) => Effect.Effect<R, never, LinkHeaderService>) => (...args: Args) => Effect.map(
     LinkHeaderTag,
     (service) => {
       const method = service[methodName];
       if (typeof method === 'function') {
-        return Effect.succeed((method as unknown as (...args: Args) => R).apply(service, args));
+        return (method as unknown as (...args: Args) => R)(...args);
       }
       throw new Error(`${String(methodName)} is not a function`);
     },
   );
 
 /**
- * Dynamically create Effect-wrapped versions of all static methods
+ * Effect-wrapped versions of all LinkHeader static methods
+ * Explicitly typed for better type inference in pipe chains
  */
 export const LinkHeader = {
-  parse: wrapServiceMethod<[value: string, offset?: number], ReturnType<typeof LinkHeaderClass.parse>>('parse'),
-  isCompatibleEncoding: wrapServiceMethod<[value: string], ReturnType<typeof LinkHeaderClass.isCompatibleEncoding>>('isCompatibleEncoding'),
-  isSingleOccurenceAttr: wrapServiceMethod<[attr: string], ReturnType<typeof LinkHeaderClass.isSingleOccurenceAttr>>('isSingleOccurenceAttr'),
-  isTokenAttr: wrapServiceMethod<[attr: string], ReturnType<typeof LinkHeaderClass.isTokenAttr>>('isTokenAttr'),
-  escapeQuotes: wrapServiceMethod<[value: string], ReturnType<typeof LinkHeaderClass.escapeQuotes>>('escapeQuotes'),
-  formatExtendedAttribute: wrapServiceMethod<[attr: string, data: Parameters<typeof LinkHeaderClass.formatExtendedAttribute>[1]], ReturnType<typeof LinkHeaderClass.formatExtendedAttribute>>('formatExtendedAttribute'),
-  formatAttribute: wrapServiceMethod<[attr: string, value: string | Buffer | Array<string | Buffer>], ReturnType<typeof LinkHeaderClass.formatAttribute>>('formatAttribute'),
+  parse: wrap<Parameters<typeof LinkHeaderClass.parse>, ReturnType<typeof LinkHeaderClass.parse>>('parse'),
+  isCompatibleEncoding: wrap<Parameters<typeof LinkHeaderClass.isCompatibleEncoding>, ReturnType<typeof LinkHeaderClass.isCompatibleEncoding>>('isCompatibleEncoding'),
+  escapeQuotes: wrap<Parameters<typeof LinkHeaderClass.escapeQuotes>, ReturnType<typeof LinkHeaderClass.escapeQuotes>>('escapeQuotes'),
 };
