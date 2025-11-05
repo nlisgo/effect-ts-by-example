@@ -1,3 +1,4 @@
+import { type Buffer } from 'node:buffer';
 import { Context, Effect, Layer } from 'effect';
 import LinkHeaderClass from 'http-link-header';
 
@@ -32,7 +33,11 @@ const wrapServiceMethod = <Args extends Array<unknown>, R>(
  * Dynamically create Effect-wrapped versions of all static methods
  */
 export const LinkHeader = {
-  parse: wrapServiceMethod<[value: string], ReturnType<typeof LinkHeaderClass.parse>>('parse'),
+  parse: wrapServiceMethod<[value: string, offset?: number], ReturnType<typeof LinkHeaderClass.parse>>('parse'),
   isCompatibleEncoding: wrapServiceMethod<[value: string], ReturnType<typeof LinkHeaderClass.isCompatibleEncoding>>('isCompatibleEncoding'),
-  // Add more methods as needed - TypeScript will ensure type safety
+  isSingleOccurenceAttr: wrapServiceMethod<[attr: string], ReturnType<typeof LinkHeaderClass.isSingleOccurenceAttr>>('isSingleOccurenceAttr'),
+  isTokenAttr: wrapServiceMethod<[attr: string], ReturnType<typeof LinkHeaderClass.isTokenAttr>>('isTokenAttr'),
+  escapeQuotes: wrapServiceMethod<[value: string], ReturnType<typeof LinkHeaderClass.escapeQuotes>>('escapeQuotes'),
+  formatExtendedAttribute: wrapServiceMethod<[attr: string, data: Parameters<typeof LinkHeaderClass.formatExtendedAttribute>[1]], ReturnType<typeof LinkHeaderClass.formatExtendedAttribute>>('formatExtendedAttribute'),
+  formatAttribute: wrapServiceMethod<[attr: string, value: string | Buffer | Array<string | Buffer>], ReturnType<typeof LinkHeaderClass.formatAttribute>>('formatAttribute'),
 };
