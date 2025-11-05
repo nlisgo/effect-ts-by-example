@@ -167,7 +167,7 @@ const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => p
   Effect.flatMap(retrieveAnnouncementActionUriFromCoarNotificationUri),
   Effect.tapBoth({
     onSuccess: (announcementActionUri) => Console.log(`(1b) retrieved action announcement uri: ${announcementActionUri}`),
-    onFailure: (error) => Console.log(`(1b) failure to retrieve action announcement ur: ${error.message}`, error),
+    onFailure: (error) => Console.log(`(1b) failure to retrieve action announcement uri: ${error.message}`, error),
   }),
   Effect.tap((announcementActionUri) => Console.log(`(2a) retrieve signposting DocMap uri from action announcement uri: ${announcementActionUri}`)),
   Effect.flatMap(retrieveSignpostingDocmapUriFromAnnouncementActionUri),
