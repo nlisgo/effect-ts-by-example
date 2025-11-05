@@ -37,10 +37,6 @@ const signpostingDocmapLinkCodec = Schema.Struct({
   profile: Schema.Literal('https://w3id.org/docmaps/context.jsonld'),
 });
 
-const httpLinkHeaderCodec = Schema.Struct({
-  refs: Schema.Array(Schema.Unknown),
-});
-
 const stepCodec = Schema.extend(
   Schema.Struct({
     inputs: Schema.Array(
@@ -126,7 +122,6 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map((headers) => headers.link),
   Effect.map(LinkHeader.parse),
-  Effect.flatMap(Schema.decodeUnknown(httpLinkHeaderCodec)),
   Effect.map(({ refs }) => refs),
   Effect.flatMap(
     (refs) => Effect.forEach(
