@@ -1,5 +1,4 @@
 import { Effect, Console, pipe } from 'effect';
-import { log } from './utils/log';
 
 // Basic Effect example
 const program = Effect.gen(function* () {
@@ -81,7 +80,7 @@ void Effect.runPromise(program.pipe(
 
   // Sequentially apply these operations using `pipe`
   const result = pipe(5, increment, double, subtractTen);
-  log(`Result: ${result}`)();
+  Effect.runSync(Console.log(`Result: ${result}`));
 }
 
 const divide = (
@@ -91,9 +90,9 @@ const divide = (
   ? Effect.fail(new Error('Cannot divide by zero'))
   : Effect.succeed(a / b));
 
-log(divide(27, 3))();
-log(divide(27, 4))();
-log(divide(27, 0))();
+Effect.runSync(Console.log(divide(27, 3)));
+Effect.runSync(Console.log(divide(27, 4)));
+Effect.runSync(Console.log(divide(27, 0)));
 
 // Synchronous function that can't fail
 const simpleLog = (message: string): Effect.Effect<void, never, never> => Effect.sync(() => console.log(message));

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "example:dev": "tsx src/example.ts",
     "example": "node dist/example.js",
     "command:dev": "tsx src/command.ts",
@@ -43,6 +43,7 @@
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-unused-imports": "^3.2.0",
+    "tsup": "^8.5.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }

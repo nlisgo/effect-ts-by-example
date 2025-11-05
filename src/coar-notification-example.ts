@@ -2,7 +2,7 @@ import { FetchHttpClient, HttpClient } from '@effect/platform';
 import {
   Array, Console, Data, Effect, Either, Option, pipe, Schema,
 } from 'effect';
-import LinkHeader from 'http-link-header';
+import { LinkHeader, LinkHeaderLive } from './services';
 
 const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
@@ -120,8 +120,8 @@ const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: s
 const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
   Effect.succeed(announcementActionUri),
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
-  Effect.map((headers) => headers.link),
-  Effect.map(LinkHeader.parse),
+  Effect.map(({ link }) => link),
+  Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
   Effect.flatMap(
     (refs) => Effect.forEach(
@@ -194,9 +194,11 @@ const app = pipe(
       ],
     },
   ]),
-  Effect.provide(FetchHttpClient.layer),
 );
 
 void Effect.runPromise(
-  Effect.catchAllCause(app, (cause) => Console.log('Unexpected failure:', cause)),
+  Effect.catchAllCause(app.pipe(
+    Effect.provide(FetchHttpClient.layer),
+    Effect.provide(LinkHeaderLive),
+  ), (cause) => Console.log('Unexpected failure:', cause)),
 );
