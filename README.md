@@ -6,17 +6,17 @@ Learning Effect-TS through practical examples.
 
 Install dependencies:
 ```bash
-bun install
+npm install
 ```
 
 Run the example:
 ```bash
-bun run example:dev
+npm run example:dev
 ```
 
 Build the project:
 ```bash
-bun run build
+npm run build
 ```
 
 ## Structure
