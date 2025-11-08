@@ -125,7 +125,8 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map(({ refs }) => refs),
   Effect.flatMap(
     (refs) => Effect.forEach(
-      refs, (ref) => Effect.either(
+      refs,
+      (ref) => Effect.either(
         Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref),
       ),
     ),
@@ -171,11 +172,13 @@ const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => p
 const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>) => pipe(
   Effect.succeed(configs),
   Effect.flatMap(
-    Effect.forEach(({ uuid }) => pipe(
-      retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
-      Effect.tap((result) => Console.log({ uuid, result })),
-      Effect.catchAll((error) => Effect.succeed({ uuid, error })),
-    )),
+    Effect.forEach(
+      ({ uuid }) => pipe(
+        retrieveDocmapFromCoarNotificationUri(`https://inbox-sciety-prod.elifesciences.org/inbox/urn:uuid:${uuid}`),
+        Effect.tap((result) => Console.log({ uuid, result })),
+        Effect.catchAll((error) => Effect.succeed({ uuid, error })),
+      ),
+    ),
   ),
 );
 
@@ -197,8 +200,12 @@ const app = pipe(
 );
 
 void Effect.runPromise(
-  Effect.catchAllCause(app.pipe(
-    Effect.provide(FetchHttpClient.layer),
-    Effect.provide(LinkHeaderLive),
-  ), (cause) => Console.log('Unexpected failure:', cause)),
+  Effect.catchAllCause(
+    app
+      .pipe(
+        Effect.provide(FetchHttpClient.layer),
+        Effect.provide(LinkHeaderLive),
+      ),
+    (cause) => Console.log('Unexpected failure:', cause),
+  ),
 );
