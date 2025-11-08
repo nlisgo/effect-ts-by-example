@@ -1,8 +1,9 @@
-import { FetchHttpClient, HttpClient } from '@effect/platform';
+import { HttpClient } from '@effect/platform';
 import {
   Array, Console, Data, Effect, Either, Option, pipe, Schema,
 } from 'effect';
-import { LinkHeader, LinkHeaderLive } from './services';
+import type Link from 'http-link-header';
+import { LinkHeader } from '../services';
 
 const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
@@ -14,7 +15,7 @@ const debugLevelSchema = Schema.Enums({
   DOCMAP_ESSENTIALS: 'DocMap (essentials)',
 } as const);
 
-const debugLevelValues = debugLevelSchema.enums;
+export const debugLevelValues = debugLevelSchema.enums;
 
 type DebugLevel = Schema.Schema.Type<typeof debugLevelSchema>;
 
@@ -72,7 +73,7 @@ const stepsCodec = Schema.Record({
   value: stepCodec,
 });
 
-const docmapCodec = Schema.Struct({
+export const docmapCodec = Schema.Struct({
   type: Schema.Literal('docmap'),
   id: Schema.String,
   publisher: Schema.Struct({
@@ -85,8 +86,6 @@ const docmapCodec = Schema.Struct({
   steps: stepsCodec,
   '@context': Schema.String,
 });
-
-const docmapsCodec = Schema.Array(docmapCodec);
 
 const httpRequestAndValidate = <Resp, E1, R1, Body, E2, R2>(
   request: (uri: string) => Effect.Effect<Resp, E1, R1>,
@@ -120,6 +119,7 @@ const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: s
 const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
   Effect.succeed(announcementActionUri),
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
+  (foo) => foo,
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
@@ -143,7 +143,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
-  Effect.flatMap(httpGetAndValidate(docmapsCodec)),
+  Effect.flatMap(httpGetAndValidate(Schema.Array(docmapCodec))),
   Effect.map(Array.head),
   Effect.flatMap(
     (opt) => (Option.isSome(opt)
@@ -152,7 +152,9 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
   ),
 );
 
-const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => pipe(
+const retrieveDocmapFromCoarNotificationUri = (
+  coarNotificationUri: string,
+) => pipe(
   Effect.succeed(coarNotificationUri),
   Effect.tap(Console.log(`(1a) retrieve action announcement uri from COAR notification uri: ${coarNotificationUri}`)),
   Effect.flatMap(retrieveAnnouncementActionUriFromCoarNotificationUri),
@@ -169,7 +171,13 @@ const retrieveDocmapFromCoarNotificationUri = (coarNotificationUri: string) => p
   Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
 );
 
-const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>) => pipe(
+export const retrieveDocmapsFromCoarNotificationUris = (
+  configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>,
+): Effect.Effect<
+ReadonlyArray<Schema.Schema.Type<typeof docmapCodec> | { uuid: string, error: unknown }>,
+never,
+HttpClient.HttpClient | typeof Link
+> => pipe(
   Effect.succeed(configs),
   Effect.flatMap(
     Effect.forEach(
@@ -180,32 +188,5 @@ const retrieveDocmapsFromCoarNotificationUris = (configs: ReadonlyArray<{ uuid: 
       ),
     ),
   ),
-);
-
-const app = pipe(
-  retrieveDocmapsFromCoarNotificationUris([
-    {
-      uuid: 'bf3513ee-1fef-4f30-a61b-20721b505f11',
-    },
-    {
-      uuid: '9154949f-6da4-4f16-8997-a0762f19b05a',
-    },
-    {
-      uuid: '7140557f-6fe6-458f-ad59-21a9d53c8eb2',
-      debug: [
-        debugLevelValues.EVALUATION_HEADERS,
-      ],
-    },
-  ]),
-);
-
-void Effect.runPromise(
-  Effect.catchAllCause(
-    app
-      .pipe(
-        Effect.provide(FetchHttpClient.layer),
-        Effect.provide(LinkHeaderLive),
-      ),
-    (cause) => Console.log('Unexpected failure:', cause),
-  ),
+  (foo) => foo,
 );

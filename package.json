@@ -10,8 +10,8 @@
     "example": "node dist/example.js",
     "command:dev": "tsx src/command.ts",
     "command": "node dist/command.js",
-    "coar-notification-example:dev": "tsx src/coar-notification-example.ts",
-    "coar-notification-example": "node dist/coar-notification-example.js",
+    "coar-notification-example:dev": "tsx src/coar-notification-example/index.ts",
+    "coar-notification-example": "node dist/coar-notification-example/index.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix"
   },
