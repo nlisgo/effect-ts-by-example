@@ -27,7 +27,16 @@ const notificationCodec = Schema.Struct({
 });
 
 const headersCodec = Schema.Struct({
-  link: Schema.String,
+  link: pipe(
+    Schema.String,
+    Schema.filter(
+      (l) => [
+        /<http[^>]+>/.test(l),
+        /(^|\s)rel="describedbywtf"/.test(l),
+        /(^|\s)profile="https:\/\/w3id.org\/docmaps\/context.jsonld"/.test(l),
+      ].every(Boolean),
+    ),
+  ),
 });
 
 const signpostingDocmapLinkCodec = Schema.Struct({
