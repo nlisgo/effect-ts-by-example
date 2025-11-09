@@ -1,6 +1,6 @@
 import { HttpClient } from '@effect/platform';
 import {
-  Array, Console, Data, Effect, Either, Option, pipe, Schema,
+  Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
 import type Link from 'http-link-header';
 import { LinkHeader } from '../services';
@@ -23,16 +23,16 @@ type DebugLevels = Array<DebugLevel>;
 
 const notificationCodec = Schema.Struct({
   object: Schema.Struct({
-    id: Schema.String,
+    id: Schema.NonEmptyString,
   }),
 });
 
 const headersCodec = Schema.Struct({
-  link: Schema.String,
+  link: Schema.NonEmptyString,
 });
 
 const signpostingDocmapLinkCodec = Schema.Struct({
-  uri: Schema.String,
+  uri: Schema.NonEmptyString,
   rel: Schema.Literal('describedby'),
   type: Schema.Literal('application/ld+json'),
   profile: Schema.Literal('https://w3id.org/docmaps/context.jsonld'),
@@ -106,7 +106,7 @@ const httpHeadAndValidate = httpRequestAndValidate(
   (res) => Effect.sync(() => res.headers),
 );
 
-class NonEmptyArrayError extends Data.TaggedError('NonEmptyArrayError')<{
+class ValidationError extends Data.TaggedError('ValidationError')<{
   message: string,
 }> {}
 
@@ -119,7 +119,6 @@ const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: s
 const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActionUri: string) => pipe(
   Effect.succeed(announcementActionUri),
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
-  (foo) => foo,
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
@@ -132,12 +131,8 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
     ),
   ),
   Effect.map((refs) => Array.filterMap(refs, Either.getRight)),
-  Effect.map(Array.last),
-  Effect.flatMap(
-    (opt) => (Option.isSome(opt)
-      ? Effect.succeed(opt.value)
-      : Effect.fail(new NonEmptyArrayError({ message: 'Header links array is empty' }))),
-  ),
+  Effect.map(Array.head),
+  Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'Header links array is empty' }))),
   Effect.map((ref) => ref.uri),
 );
 
@@ -145,11 +140,7 @@ const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) =>
   Effect.succeed(signpostingDocmapUri),
   Effect.flatMap(httpGetAndValidate(Schema.Array(docmapCodec))),
   Effect.map(Array.head),
-  Effect.flatMap(
-    (opt) => (Option.isSome(opt)
-      ? Effect.succeed(opt.value)
-      : Effect.fail(new NonEmptyArrayError({ message: 'DocMaps array is empty' }))),
-  ),
+  Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
 );
 
 const retrieveDocmapFromCoarNotificationUri = (
@@ -188,5 +179,4 @@ HttpClient.HttpClient | typeof Link
       ),
     ),
   ),
-  (foo) => foo,
 );
