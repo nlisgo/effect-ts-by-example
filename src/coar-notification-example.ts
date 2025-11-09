@@ -5,8 +5,8 @@ import {
 import {
   debugLevelValues,
   retrieveDocmapsFromCoarNotificationUris,
-} from './dependencies';
-import { LinkHeaderLive } from '../services';
+} from './coar-notification';
+import { LinkHeaderLive } from './services';
 
 const app = pipe(
   retrieveDocmapsFromCoarNotificationUris([

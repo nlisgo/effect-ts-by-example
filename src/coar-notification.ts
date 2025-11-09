@@ -3,7 +3,7 @@ import {
   Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
 import type Link from 'http-link-header';
-import { LinkHeader } from '../services';
+import { LinkHeader } from './services';
 
 const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
@@ -121,12 +121,13 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
-  Effect.map(({ refs }) => refs),
   Effect.flatMap(
-    (refs) => Effect.forEach(
+    ({ refs }) => Effect.forEach(
       refs,
-      (ref) => Effect.either(
-        Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref),
+      (ref) => pipe(
+        ref,
+        Schema.decodeUnknown(signpostingDocmapLinkCodec),
+        Effect.either,
       ),
     ),
   ),
@@ -139,6 +140,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
   Effect.flatMap(httpGetAndValidate(Schema.Array(docmapCodec))),
+  (foo) => foo,
   Effect.map(Array.head),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
 );

@@ -109,7 +109,7 @@ module.exports = {
     'node/prefer-global/url-search-params': ['error', 'never'],
     'prefer-destructuring': 'off',
     'unused-imports/no-unused-imports-ts': 'error',
-    'import/no-extraneous-dependencies': ['error', { devDependencies: ['test/**/*.ts'] }],
+    'import/no-extraneous-dependencies': ['error', { devDependencies: ['test/**/*.ts', '**/*.test.ts', '**/*.spec.ts'] }],
     'func-names': 'off',
   },
   settings: {
