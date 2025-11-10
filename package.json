@@ -12,6 +12,8 @@
     "command": "node dist/command.js",
     "coar-notification-example:dev": "tsx src/coar-notification-example.ts",
     "coar-notification-example": "node dist/coar-notification-example.js",
+    "unary-example:dev": "tsx src/unary-example.ts",
+    "unary-example": "node dist/unary-example.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts",

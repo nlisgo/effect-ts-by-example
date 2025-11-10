@@ -2,8 +2,13 @@ import { HttpClient } from '@effect/platform';
 import {
   Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
+import { type ParseOptions } from 'effect/SchemaAST';
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
+
+const schemaDecodeUnknown = (
+  options?: ParseOptions,
+) => <A>(schema: Schema.Schema<A>) => (u: unknown) => Schema.decodeUnknown(schema, options)(u);
 
 const debugLevelSchema = Schema.Enums({
   BASIC: 'Basic',
@@ -122,7 +127,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
-  Effect.map(Array.map((ref) => Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref))),
+  Effect.map(Array.map(schemaDecodeUnknown()(signpostingDocmapLinkCodec))),
   Effect.flatMap(
     Effect.forEach(Effect.either),
   ),
