@@ -45,6 +45,13 @@ const exampleTwo = (unknownItems: Array<unknown>) => pipe(
   Effect.map(Array.filterMap(Either.getRight)),
 );
 
+const exampleThree = (unknownItems: Array<unknown>) => pipe(
+  unknownItems,
+  Array.filter(Schema.is(itemCodec)),
+);
+
 void Effect.runSync(exampleOne(items).pipe(Effect.map(console.log)));
 
 void Effect.runSync(exampleTwo(items).pipe(Effect.map(console.log)));
+
+console.log(exampleThree(items));
