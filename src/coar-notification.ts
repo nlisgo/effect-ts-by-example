@@ -1,6 +1,6 @@
 import { HttpClient } from '@effect/platform';
 import {
-  Array, Console, Data, Effect, Either, pipe, Schema,
+  Array, Console, Data, Effect, Either, flow, pipe, Schema,
 } from 'effect';
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
@@ -121,12 +121,11 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
+  Effect.map(({ refs }) => refs),
   Effect.flatMap(
-    ({ refs }) => Effect.forEach(
-      refs,
-      (ref) => pipe(
-        ref,
-        Schema.decodeUnknown(signpostingDocmapLinkCodec),
+    Effect.forEach(
+      flow(
+        (ref) => Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref),
         Effect.either,
       ),
     ),
