@@ -1,6 +1,6 @@
 import { HttpClient } from '@effect/platform';
 import {
-  Array, Console, Data, Effect, Either, flow, pipe, Schema,
+  Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
@@ -122,15 +122,13 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
+  Effect.map(Array.map((ref) => Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref))),
   Effect.flatMap(
-    Effect.forEach(
-      flow(
-        (ref) => Schema.decodeUnknown(signpostingDocmapLinkCodec)(ref),
-        Effect.either,
-      ),
-    ),
+    Effect.forEach(Effect.either),
   ),
-  Effect.map((refs) => Array.filterMap(refs, Either.getRight)),
+  Effect.map(
+    Array.filterMap(Either.getRight),
+  ),
   Effect.map(Array.head),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'Header links array is empty' }))),
   Effect.map((ref) => ref.uri),
@@ -139,7 +137,6 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
   Effect.flatMap(httpGetAndValidate(Schema.Array(docmapCodec))),
-  (foo) => foo,
   Effect.map(Array.head),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
 );
