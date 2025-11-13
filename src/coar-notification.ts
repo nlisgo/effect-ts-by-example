@@ -127,14 +127,7 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map(({ link }) => link),
   Effect.flatMap(LinkHeader.parse),
   Effect.map(({ refs }) => refs),
-  Effect.map(Array.map(schemaDecodeUnknown()(signpostingDocmapLinkCodec))),
-  Effect.flatMap(
-    Effect.forEach(Effect.either),
-  ),
-  Effect.map(
-    Array.filterMap(Either.getRight),
-  ),
-  Effect.map(Array.head),
+  Effect.map(Array.findFirst(Schema.is(signpostingDocmapLinkCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'Header links array is empty' }))),
   Effect.map((ref) => ref.uri),
 );
