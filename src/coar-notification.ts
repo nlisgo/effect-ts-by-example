@@ -134,8 +134,8 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 
 const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
-  Effect.flatMap(httpGetAndValidate(Schema.Array(docmapCodec))),
-  Effect.map(Array.head),
+  Effect.flatMap(httpGetAndValidate(Schema.Array(Schema.Unknown))),
+  Effect.map(Array.findFirst(Schema.is(docmapCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
 );
 
