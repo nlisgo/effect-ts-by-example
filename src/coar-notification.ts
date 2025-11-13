@@ -1,10 +1,11 @@
 import { HttpClient } from '@effect/platform';
 import {
-  Array, Console, Data, Effect, Either, pipe, Schema,
+  Array, Console, Data, Effect, Either, pipe, Record, Schema,
 } from 'effect';
 import { type ParseOptions } from 'effect/SchemaAST';
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
+import {ReadonlyRecord} from "effect/Record";
 
 const schemaDecodeUnknown = (
   options?: ParseOptions,
@@ -132,11 +133,30 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map((ref) => ref.uri),
 );
 
-const retrieveDocmapFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
+const getActionDoiFromDocmap = (docmap: Schema.Schema.Type<typeof docmapCodec>) => pipe(
+  docmap.steps,
+  Record.map(
+    (step) => step.actions.flatMap(
+      (action) => action.outputs,
+    ),
+  ),
+  Array.fromRecord,
+  Array.flatMap((i) => i[1]),
+  Array.findFirst((output) => [
+    'editorial-decision',
+    'review',
+    'reply',
+  ].includes(output.type)),
+  Either.fromOption(() => new ValidationError({ message: 'No action DOI found' })),
+  Either.map((action) => action.doi),
+);
+
+const retrieveActionDoiFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
   Effect.flatMap(httpGetAndValidate(Schema.Array(Schema.Unknown))),
   Effect.map(Array.findFirst(Schema.is(docmapCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
+  Effect.flatMap(getActionDoiFromDocmap),
 );
 
 const retrieveDocmapFromCoarNotificationUri = (
@@ -155,13 +175,13 @@ const retrieveDocmapFromCoarNotificationUri = (
     onSuccess: (signpostingDocmapUri) => Console.log(`(2b) retrieved signposting DocMap uri: ${signpostingDocmapUri}`),
     onFailure: (error) => Console.log(`(2b) failure to retrieve signposting DocMap uri: ${error.message}`, error),
   }),
-  Effect.flatMap(retrieveDocmapFromSignpostingDocmapUri),
+  Effect.flatMap(retrieveActionDoiFromSignpostingDocmapUri),
 );
 
 export const retrieveDocmapsFromCoarNotificationUris = (
   configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>,
 ): Effect.Effect<
-ReadonlyArray<Schema.Schema.Type<typeof docmapCodec> | { uuid: string, error: unknown }>,
+ReadonlyArray<string | { uuid: string, error: unknown }>,
 never,
 HttpClient.HttpClient | typeof Link
 > => pipe(

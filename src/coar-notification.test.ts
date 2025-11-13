@@ -86,8 +86,8 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
     );
 
     expect(result).toHaveLength(2);
-    expect(result[0]).toHaveProperty('type', 'docmap');
-    expect(result[1]).toHaveProperty('type', 'docmap');
+    expect(result[0]).toBe('10.1234/output');
+    expect(result[1]).toBe('10.1234/output');
   });
 
   it('should handle errors gracefully and return error objects', async () => {
@@ -186,7 +186,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
     );
 
     expect(result).toHaveLength(2);
-    expect(result[0]).toHaveProperty('type', 'docmap');
+    expect(result[0]).toBe('10.1234/output');
     expect(result[1]).toHaveProperty('uuid', 'error-uuid');
     expect(result[1]).toHaveProperty('error');
   });
