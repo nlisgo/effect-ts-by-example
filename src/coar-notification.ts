@@ -116,22 +116,17 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.map((ref) => ref.uri),
 );
 
-const getActionDoiFromDocmap = (docmap: Schema.Schema.Type<typeof docmapCodec>) => pipe(
-  Effect.succeed(docmap.steps),
-  Effect.map(Array.fromRecord),
-  Effect.map(Array.map((step) => step[1])),
-  Effect.map(Array.findFirst(Schema.is(stepCodec))),
-  Effect.map(Either.fromOption(() => new ValidationError({ message: 'No action DOI found' }))),
-  Effect.flatMap(Either.map((step) => step.actions[0].outputs[0].doi)),
-);
-
 const retrieveActionDoiFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
   Effect.flatMap(httpGetAndValidate(docmapsCodec)),
   Effect.map(Array.findFirst(Schema.is(docmapCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
-  Effect.flatMap(getActionDoiFromDocmap),
-  Effect.tap(Console.log),
+  Effect.map((docmap) => docmap.steps),
+  Effect.map(Array.fromRecord),
+  Effect.map(Array.map((step) => step[1])),
+  Effect.map(Array.findFirst(Schema.is(stepCodec))),
+  Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'No action DOI found' }))),
+  Effect.map((step) => step.actions[0].outputs[0].doi),
 );
 
 const retrieveDocmapFromCoarNotificationUri = (
