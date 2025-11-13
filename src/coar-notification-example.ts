@@ -3,7 +3,6 @@ import {
   Console, Effect, pipe,
 } from 'effect';
 import {
-  debugLevelValues,
   retrieveDocmapsFromCoarNotificationUris,
 } from './coar-notification';
 import { LinkHeaderLive } from './services';
@@ -18,9 +17,6 @@ const app = pipe(
     },
     {
       uuid: '7140557f-6fe6-458f-ad59-21a9d53c8eb2',
-      debug: [
-        debugLevelValues.EVALUATION_HEADERS,
-      ],
     },
   ]),
 );

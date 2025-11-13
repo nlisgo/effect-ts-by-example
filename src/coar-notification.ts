@@ -5,22 +5,6 @@ import {
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
 
-const debugLevelSchema = Schema.Enums({
-  BASIC: 'Basic',
-  COAR_NOTIFICATION: 'COAR notification',
-  COAR_NOTIFICATION_ESSENTIALS: 'COAR notification (essentials)',
-  EVALUATION_HEADERS: 'Evaluation headers',
-  EVALUATION_HEADERS_ESSENTIALS: 'Evaluation headers (essentials)',
-  DOCMAP: 'DocMap',
-  DOCMAP_ESSENTIALS: 'DocMap (essentials)',
-} as const);
-
-export const debugLevelValues = debugLevelSchema.enums;
-
-type DebugLevel = Schema.Schema.Type<typeof debugLevelSchema>;
-
-type DebugLevels = Array<DebugLevel>;
-
 const notificationCodec = Schema.Struct({
   object: Schema.Struct({
     id: Schema.NonEmptyString,
@@ -150,7 +134,7 @@ const retrieveDocmapFromCoarNotificationUri = (
 );
 
 export const retrieveDocmapsFromCoarNotificationUris = (
-  configs: ReadonlyArray<{ uuid: string, debug?: DebugLevels }>,
+  configs: ReadonlyArray<{ uuid: string }>,
 ): Effect.Effect<
 ReadonlyArray<string | { uuid: string, error: unknown }>,
 never,
