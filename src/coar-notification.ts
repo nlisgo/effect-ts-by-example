@@ -1,6 +1,6 @@
 import { HttpClient } from '@effect/platform';
 import {
-  Array, Console, Data, Effect, Either, pipe, Record, Schema,
+  Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
 import type Link from 'http-link-header';
 import { LinkHeader } from './services';
@@ -38,54 +38,43 @@ const signpostingDocmapLinkCodec = Schema.Struct({
   profile: Schema.Literal('https://w3id.org/docmaps/context.jsonld'),
 });
 
-const stepCodec = Schema.extend(
-  Schema.Struct({
-    inputs: Schema.Array(
+const stepCodec = Schema.Struct({
+  actions: Schema.NonEmptyArray(Schema.Struct({
+    outputs: Schema.NonEmptyArray(
       Schema.Struct({
+        published: Schema.String,
         doi: Schema.String,
+        type: Schema.Union(
+          Schema.Literal('editorial-decision'),
+          Schema.Literal('review'),
+          Schema.Literal('reply'),
+        ),
       }),
     ),
-    actions: Schema.Array(
+    inputs: Schema.NonEmptyArray(
       Schema.Struct({
-        outputs: Schema.Array(
-          Schema.Struct({
-            published: Schema.String,
-            doi: Schema.String,
-            type: Schema.String,
-          }),
-        ),
-        inputs: Schema.Array(
-          Schema.Struct({
-            doi: Schema.String,
-          }),
-        ),
+        published: Schema.String,
+        doi: Schema.String,
+        type: Schema.Literal('preprint'),
       }),
     ),
-  }),
-  Schema.partial(Schema.Struct({
-    'next-step': Schema.String,
-    'previous-step': Schema.String,
   })),
-);
-
-const stepsCodec = Schema.Record({
-  key: Schema.String,
-  value: stepCodec,
+  assertions: Schema.NonEmptyArray(
+    Schema.Struct({
+      status: Schema.Literal('reviewed'),
+      item: Schema.String,
+    }),
+  ),
 });
 
-export const docmapCodec = Schema.Struct({
-  type: Schema.Literal('docmap'),
-  id: Schema.String,
-  publisher: Schema.Struct({
-    name: Schema.String,
-    url: Schema.String,
+const docmapCodec = Schema.Struct({
+  steps: Schema.Record({
+    key: Schema.String,
+    value: Schema.Unknown,
   }),
-  created: Schema.String,
-  updated: Schema.String,
-  'first-step': Schema.Literal('_:b0'),
-  steps: stepsCodec,
-  '@context': Schema.String,
 });
+
+const docmapsCodec = Schema.NonEmptyArray(Schema.Unknown);
 
 const httpRequestAndValidate = <Resp, E1, R1, Body, E2, R2>(
   request: (uri: string) => Effect.Effect<Resp, E1, R1>,
@@ -128,29 +117,21 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
 );
 
 const getActionDoiFromDocmap = (docmap: Schema.Schema.Type<typeof docmapCodec>) => pipe(
-  docmap.steps,
-  Record.map(
-    (step) => step.actions.flatMap(
-      (action) => action.outputs,
-    ),
-  ),
-  Array.fromRecord,
-  Array.flatMap((i) => i[1]),
-  Array.findFirst((output) => [
-    'editorial-decision',
-    'review',
-    'reply',
-  ].includes(output.type)),
-  Either.fromOption(() => new ValidationError({ message: 'No action DOI found' })),
-  Either.map((action) => action.doi),
+  Effect.succeed(docmap.steps),
+  Effect.map(Array.fromRecord),
+  Effect.map(Array.map((step) => step[1])),
+  Effect.map(Array.findFirst(Schema.is(stepCodec))),
+  Effect.map(Either.fromOption(() => new ValidationError({ message: 'No action DOI found' }))),
+  Effect.flatMap(Either.map((step) => step.actions[0].outputs[0].doi)),
 );
 
 const retrieveActionDoiFromSignpostingDocmapUri = (signpostingDocmapUri: string) => pipe(
   Effect.succeed(signpostingDocmapUri),
-  Effect.flatMap(httpGetAndValidate(Schema.Array(Schema.Unknown))),
+  Effect.flatMap(httpGetAndValidate(docmapsCodec)),
   Effect.map(Array.findFirst(Schema.is(docmapCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'DocMaps array is empty' }))),
   Effect.flatMap(getActionDoiFromDocmap),
+  Effect.tap(Console.log),
 );
 
 const retrieveDocmapFromCoarNotificationUri = (
@@ -170,6 +151,7 @@ const retrieveDocmapFromCoarNotificationUri = (
     onFailure: (error) => Console.log(`(2b) failure to retrieve signposting DocMap uri: ${error.message}`, error),
   }),
   Effect.flatMap(retrieveActionDoiFromSignpostingDocmapUri),
+  Effect.tap((actionDoi) => Console.log(`(3) retrieved action DOI: ${actionDoi}`)),
 );
 
 export const retrieveDocmapsFromCoarNotificationUris = (
