@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import { pipe } from 'effect';
 import { repeats } from './day02-gift-shop';
 
 describe('day02-gift-shop', () => {
@@ -13,7 +14,10 @@ describe('day02-gift-shop', () => {
     [212121212121, true],
     [2121212118, false],
   ])('repeats (twice)', (input: number, expected: boolean) => {
-    expect(repeats(true)(input)).toBe(expected);
+    expect(pipe(
+      input,
+      repeats(true),
+    )).toBe(expected);
   });
 
   it.each([
@@ -26,6 +30,9 @@ describe('day02-gift-shop', () => {
     [2121212121, true],
     [2121212118, false],
   ])('repeats (multiple)', (input: number, expected: boolean) => {
-    expect(repeats()(input)).toBe(expected);
+    expect(pipe(
+      input,
+      repeats(),
+    )).toBe(expected);
   });
 });
