@@ -1,1 +1,1 @@
-export { LinkHeader, LinkHeaderLive } from './http-link-header';
+export { LinkHeader } from './http-link-header';

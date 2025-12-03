@@ -5,7 +5,7 @@ import {
 import {
   retrieveDocmapsFromCoarNotificationUris,
 } from './coar-notification';
-import { LinkHeaderLive } from './services';
+import { LinkHeader } from './services';
 
 const app = pipe(
   retrieveDocmapsFromCoarNotificationUris([
@@ -26,7 +26,7 @@ void Effect.runPromise(
     app
       .pipe(
         Effect.provide(FetchHttpClient.layer),
-        Effect.provide(LinkHeaderLive),
+        Effect.provide(LinkHeader.Default),
       ),
     (cause) => Console.log('Unexpected failure:', cause),
   ),

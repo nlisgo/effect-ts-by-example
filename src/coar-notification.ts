@@ -2,7 +2,6 @@ import { HttpClient } from '@effect/platform';
 import {
   Array, Console, Data, Effect, Either, pipe, Schema,
 } from 'effect';
-import type Link from 'http-link-header';
 import { LinkHeader } from './services';
 
 const notificationCodec = Schema.Struct({
@@ -64,10 +63,10 @@ const httpRequestAndValidate = <Resp, E1, R1, Body, E2, R2>(
   request: (uri: string) => Effect.Effect<Resp, E1, R1>,
   extract: (resp: Resp) => Effect.Effect<Body, E2, R2>,
 ) => <A, I = unknown, Req = never>(schema: Schema.Schema<A, I, Req>) => (uri: string) => Effect.gen(function* () {
-    const raw = yield* request(uri);
-    const data = yield* extract(raw);
-    return yield* Schema.decodeUnknown(schema)(data);
-  });
+  const raw = yield* request(uri);
+  const data = yield* extract(raw);
+  return yield* Schema.decodeUnknown(schema)(data);
+});
 
 const httpGetAndValidate = httpRequestAndValidate(
   (uri) => HttpClient.get(uri),
@@ -81,7 +80,7 @@ const httpHeadAndValidate = httpRequestAndValidate(
 
 class ValidationError extends Data.TaggedError('ValidationError')<{
   message: string,
-}> {}
+}> { }
 
 const retrieveAnnouncementActionUriFromCoarNotificationUri = (notificationUri: string) => pipe(
   Effect.succeed(notificationUri),
@@ -93,7 +92,10 @@ const retrieveSignpostingDocmapUriFromAnnouncementActionUri = (announcementActio
   Effect.succeed(announcementActionUri),
   Effect.flatMap(httpHeadAndValidate(headersCodec)),
   Effect.map(({ link }) => link),
-  Effect.flatMap(LinkHeader.parse),
+  Effect.flatMap((link) => Effect.gen(function* () {
+    const linkHeader = yield* LinkHeader;
+    return linkHeader.parse(link);
+  })),
   Effect.map(({ refs }) => refs),
   Effect.map(Array.findFirst(Schema.is(signpostingDocmapLinkCodec))),
   Effect.flatMap(Either.fromOption(() => new ValidationError({ message: 'Header links array is empty' }))),
@@ -136,9 +138,9 @@ const retrieveDocmapFromCoarNotificationUri = (
 export const retrieveDocmapsFromCoarNotificationUris = (
   configs: ReadonlyArray<{ uuid: string }>,
 ): Effect.Effect<
-ReadonlyArray<string | { uuid: string, error: unknown }>,
-never,
-HttpClient.HttpClient | typeof Link
+  ReadonlyArray<string | { uuid: string, error: unknown }>,
+  never,
+  HttpClient.HttpClient | LinkHeader
 > => pipe(
   Effect.succeed(configs),
   Effect.flatMap(

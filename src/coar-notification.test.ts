@@ -5,7 +5,7 @@ import {
   Effect, Layer, pipe,
 } from 'effect';
 import { retrieveDocmapsFromCoarNotificationUris } from './coar-notification';
-import { LinkHeaderLive } from './services';
+import { LinkHeader } from './services';
 
 // Mock data
 const mockDocmap = {
@@ -27,7 +27,15 @@ const mockDocmap = {
           doi: '10.1234/output',
           type: 'review',
         }],
-        inputs: [{ doi: '10.1234/input' }],
+        inputs: [{
+          published: '2024-01-01',
+          doi: '10.1234/input',
+          type: 'preprint',
+        }],
+      }],
+      assertions: [{
+        status: 'reviewed',
+        item: '10.1234/input',
       }],
     },
   },
@@ -41,6 +49,26 @@ const mockNotification = {
 };
 
 const mockLinkHeader = '<https://example.com/docmap>; rel="describedby"; type="application/ld+json"; profile="https://w3id.org/docmaps/context.jsonld"';
+
+// Mock LinkHeader implementation
+const mockLinkHeaderService = {
+  parse: (linkHeader: string) => ({
+    refs: [
+      {
+        uri: 'https://example.com/docmap',
+        rel: 'describedby',
+        type: 'application/ld+json',
+        profile: 'https://w3id.org/docmaps/context.jsonld',
+      },
+    ],
+  }),
+  isCompatibleEncoding: () => true,
+  isSingleOccurenceAttr: () => false,
+  isTokenAttr: () => false,
+  escapeQuotes: (str: string) => str,
+} as any;
+
+const MockLinkHeaderLayer = Layer.succeed(LinkHeader, mockLinkHeaderService);
 
 // Mock HttpClient implementation
 const makeMockHttpClient = (
@@ -81,7 +109,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
           ),
         ),
       ),
-      Effect.provide(LinkHeaderLive),
+      Effect.provide(MockLinkHeaderLayer),
       Effect.runPromise,
     );
 
@@ -106,7 +134,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
           ),
         ),
       ),
-      Effect.provide(LinkHeaderLive),
+      Effect.provide(MockLinkHeaderLayer),
       Effect.runPromise,
     );
 
@@ -124,7 +152,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
           makeMockHttpClient({}, {}),
         ),
       ),
-      Effect.provide(LinkHeaderLive),
+      Effect.provide(MockLinkHeaderLayer),
       Effect.runPromise,
     );
 
@@ -150,7 +178,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
           ),
         ),
       ),
-      Effect.provide(LinkHeaderLive),
+      Effect.provide(MockLinkHeaderLayer),
       Effect.runPromise,
     );
 
@@ -181,7 +209,7 @@ describe('retrieveDocmapsFromCoarNotificationUris', () => {
           ),
         ),
       ),
-      Effect.provide(LinkHeaderLive),
+      Effect.provide(MockLinkHeaderLayer),
       Effect.runPromise,
     );
 
