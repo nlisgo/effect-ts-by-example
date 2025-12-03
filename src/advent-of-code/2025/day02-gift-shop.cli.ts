@@ -6,7 +6,7 @@ import { readInput } from './day02-gift-shop';
 
 void Effect.runPromise(
   Effect.catchAllCause(
-    readInput()
+    readInput('src/advent-of-code/2025/day02-gift-shop.in')
       .pipe(
         Effect.provide(NodeFileSystem.layer),
       ),

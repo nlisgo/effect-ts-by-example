@@ -6,7 +6,7 @@ import { readInput } from './day01-secret-entrance';
 
 void Effect.runPromise(
   Effect.catchAllCause(
-    readInput()
+    readInput('src/advent-of-code/2025/day01-secret-entrance.in', false)
       .pipe(
         Effect.map((result) => `Landing on zero: ${result}`),
         Effect.tap(Console.log),
@@ -20,7 +20,7 @@ void Effect.runPromise(
 
 void Effect.runPromise(
   Effect.catchAllCause(
-    readInput(true)
+    readInput('src/advent-of-code/2025/day01-secret-entrance.in', true)
       .pipe(
         Effect.map((result) => `Passing through zero: ${result}`),
         Effect.tap(Console.log),
