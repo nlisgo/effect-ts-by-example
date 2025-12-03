@@ -52,7 +52,7 @@ const mockLinkHeader = '<https://example.com/docmap>; rel="describedby"; type="a
 
 // Mock LinkHeader implementation
 const mockLinkHeaderService = {
-  parse: (linkHeader: string) => ({
+  parse: () => ({
     refs: [
       {
         uri: 'https://example.com/docmap',
@@ -66,9 +66,9 @@ const mockLinkHeaderService = {
   isSingleOccurenceAttr: () => false,
   isTokenAttr: () => false,
   escapeQuotes: (str: string) => str,
-} as any;
+};
 
-const MockLinkHeaderLayer = Layer.succeed(LinkHeader, mockLinkHeaderService);
+const MockLinkHeaderLayer = Layer.succeed(LinkHeader, mockLinkHeaderService as any);
 
 // Mock HttpClient implementation
 const makeMockHttpClient = (
