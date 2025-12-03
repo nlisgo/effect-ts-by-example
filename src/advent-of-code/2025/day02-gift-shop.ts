@@ -9,7 +9,7 @@ export const repeats = (twiceOnly: boolean = false) => (input: number): boolean 
   if (twiceOnly) {
     const inputStr = input.toString();
     return inputStr.length % 2 === 0
-            && inputStr === inputStr.slice(0, inputStr.length / 2).repeat(2);
+      && inputStr === inputStr.slice(0, inputStr.length / 2).repeat(2);
   }
 
   for (let i = 1; i <= s.length / 2; i += 1) {
@@ -22,11 +22,11 @@ export const repeats = (twiceOnly: boolean = false) => (input: number): boolean 
 };
 
 export const readInput = (
+  file: string,
 ): Effect.Effect<void, PlatformError.PlatformError, FileSystem.FileSystem> => pipe(
-  'src/advent-of-code/2025/day02-gift-shop.in',
-  (input) => Effect.flatMap(
+  Effect.flatMap(
     FileSystem.FileSystem,
-    (fs) => fs.readFileString(input),
+    (fs) => fs.readFileString(file),
   ),
   Effect.map((i) => i.split(/\n/)),
   Effect.map(Array.head),

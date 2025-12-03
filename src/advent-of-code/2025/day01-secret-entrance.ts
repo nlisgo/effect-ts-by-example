@@ -50,19 +50,19 @@ export const performRotations = (
 ) => (
   relativePositions: ReadonlyArray<number>,
 ): ReadonlyArray<PerformRotation> => {
-  const performs = [
-    {
-      end: start,
-      zeros: 0,
-    },
-  ];
+    const performs = [
+      {
+        end: start,
+        zeros: 0,
+      },
+    ];
 
-  for (let i = 0; i < relativePositions.length; i += 1) {
-    performs.push(performRotation(performs[i].end, relativePositions[i]));
-  }
+    for (let i = 0; i < relativePositions.length; i += 1) {
+      performs.push(performRotation(performs[i].end, relativePositions[i]));
+    }
 
-  return performs;
-};
+    return performs;
+  };
 
 export const relativePosition = (rotation: string): number => pipe(
   rotation.replace(/(L|R)([0-9][0-9]*)/, '$1|$2').split('|'),
@@ -70,12 +70,12 @@ export const relativePosition = (rotation: string): number => pipe(
 );
 
 export const readInput = (
+  file: string,
   passingThroughZero: boolean = false,
 ): Effect.Effect<number, PlatformError.PlatformError, FileSystem.FileSystem> => pipe(
-  'src/advent-of-code/2025/day01-secret-entrance.in',
-  (input) => Effect.flatMap(
+  Effect.flatMap(
     FileSystem.FileSystem,
-    (fs) => fs.readFileString(input),
+    (fs) => fs.readFileString(file),
   ),
   Effect.map((i) => i.split(/\n/)),
   Effect.map(Array.filter(Schema.is(Schema.String.pipe(Schema.pattern(/(L|R)[1-9][0-9]{0,}/))))),
