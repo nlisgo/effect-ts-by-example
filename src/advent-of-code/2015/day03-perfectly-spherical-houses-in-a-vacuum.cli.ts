@@ -2,7 +2,7 @@ import { NodeFileSystem } from '@effect/platform-node';
 import { Console, Effect } from 'effect';
 import { readInput } from './day03-perfectly-spherical-houses-in-a-vacuum';
 
-// See: https://adventofcode.com/2025/day/2
+// See: https://adventofcode.com/2025/day/3
 
 void Effect.runPromise(
   Effect.catchAllCause(
