@@ -11,7 +11,7 @@ describe('day01-secret-entrance', () => {
     ['L0', 0],
     ['L68', -68],
     ['R99', 99],
-  ])('relativePostion', (rotation: string, expected: number) => {
+  ])('relativePosition', (rotation: string, expected: number) => {
     expect(relativePosition(rotation)).toBe(expected);
   });
 
